@@ -25,4 +25,10 @@ Flan is Ryan's fun/learning/portfolio project: a small self-hosted cloud. See
 
 - `main` stays working. Do each piece of work on a branch and open a PR.
 - Small commits with clear messages.
+- **Use Conventional Commits** for every commit message and PR title:
+  `type(optional-scope): short imperative summary`, e.g.
+  `feat(api): add VM list endpoint` or `docs: update roadmap`. Types: `feat`,
+  `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`.
+- **Name branches** `type/short-kebab-description` with the same types, e.g.
+  `feat/vm-list-endpoint`, `fix/disk-cleanup`.
 - Update the README roadmap when a step is finished.
