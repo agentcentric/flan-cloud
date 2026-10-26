@@ -69,3 +69,7 @@ Kubernetes (k3s), and a full OAuth2/OIDC provider.
 ## Status
 
 Just getting started. 🚧
+
+## License
+
+MIT. See [LICENSE](LICENSE).
