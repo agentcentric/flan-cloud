@@ -30,6 +30,30 @@ if (typeof functionModule.default !== 'function') {
 
 const handler: Handler = functionModule.default;
 
+// Convert Node's request into the web-standard Request the function expects
+function nodeReqToWebRequest(req: IncomingMessage): Request {
+    // req.url is only the path and query, so add a scheme and host to make it absolute
+    const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+
+    const headers = new Headers();
+    for (const [name, values] of Object.entries(req.headersDistinct)) {
+        for (const value of values ?? []) {
+            headers.append(name, value);
+        }
+    }
+
+    const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
+
+    // Node requires `duplex` for a streamed body, but RequestInit's type doesn't include it
+    const init: RequestInit & { duplex: 'half' } = {
+        method: req.method,
+        headers,
+        body: hasBody ? (Readable.toWeb(req) as ReadableStream) : null,
+        duplex: 'half',
+    };
+    return new Request(url, init);
+}
+
 const server = createServer((req, res) => {
     // Reserved for the platform: answered by the shim for any method, never passed to the function
     const path = req.url?.split('?')[0];
@@ -39,7 +63,7 @@ const server = createServer((req, res) => {
         return;
     }
 
-    // TODO: convert req to a Request, call handler, send the Response back
+    // TODO: call handler with nodeReqToWebRequest(req), send the Response back
 });
 
 server.listen(port, () => {
