@@ -9,6 +9,7 @@ type Handler = (request: Request) => Response | Promise<Response>;
 
 const DEFAULT_FUNCTION_PATH = '/app/function/index.ts';
 const DEFAULT_PORT = 8080;
+const HEALTH_PATH = '/_flan/health';
 
 // Read config once at startup so bad values fail immediately
 const functionPath = resolve(env.FLAN_FUNCTION_PATH ?? DEFAULT_FUNCTION_PATH);
@@ -29,7 +30,17 @@ if (typeof functionModule.default !== 'function') {
 
 const handler: Handler = functionModule.default;
 
-const server = createServer((req, res) => {});
+const server = createServer((req, res) => {
+    // Reserved for the platform: answered by the shim for any method, never passed to the function
+    const path = req.url?.split('?')[0];
+    if (path === HEALTH_PATH) {
+        res.statusCode = 200;
+        res.end('ok');
+        return;
+    }
+
+    // TODO: convert req to a Request, call handler, send the Response back
+});
 
 server.listen(port, () => {
     console.log(`Listening on port ${port} (function: ${functionPath})`);
