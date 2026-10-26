@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+coverage/
+
+# Go
+/bin/
+*.exe
+*.test
+*.out
+go.work.sum
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local Flan data (control plane DB, uploaded function code)
+.flan/
+*.db
+*.sqlite
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
