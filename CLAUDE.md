@@ -5,6 +5,11 @@ Flan is Ryan's fun/learning/portfolio project: a small self-hosted cloud. See
 
 ## How to work with Ryan
 
+- **Ryan goes first on next steps.** Before planning or building the next
+  step, ask Ryan how they would do it and let them explain their thinking. Then
+  compare it with your approach: say where they're right, where they're off and why,
+  and talk it through until you both agree. Only then continue. The point is
+  for Ryan to learn, so don't lead with your own plan.
 - **Explain before building.** Walk through the design of each step in plain
   terms and get a go-ahead before writing a lot of code.
 - **Go granular.** Small, focused explanations and changes. No big walls of
