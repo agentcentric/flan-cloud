@@ -3,6 +3,8 @@ import { createServer } from "node:http";
 import { resolve } from "node:path";
 import { env } from "node:process";
 import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { pathToFileURL } from "node:url";
 
 type Handler = (request: Request) => Response | Promise<Response>;
@@ -59,7 +61,35 @@ function nodeReqToWebRequest(req: IncomingMessage): Request {
 	return new Request(url, init);
 }
 
-const server = createServer((req, res) => {
+// Copy the function's web Response onto Node's response stream
+async function sendWebResponse(
+	response: Response,
+	res: ServerResponse,
+): Promise<void> {
+	res.statusCode = response.status;
+
+	// Iterating Headers yields each Set-Cookie separately, and setHeader would keep only the last
+	for (const [name, value] of response.headers) {
+		if (name !== "set-cookie") {
+			res.setHeader(name, value);
+		}
+	}
+	const cookies = response.headers.getSetCookie();
+	if (cookies.length > 0) {
+		res.setHeader("set-cookie", cookies);
+	}
+
+	if (response.body === null) {
+		res.end();
+		return;
+	}
+
+	// pipeline streams the body into res and ends res when the body is done.
+	// The global and node:stream/web ReadableStream types differ slightly but are the same at runtime
+	await pipeline(Readable.fromWeb(response.body as NodeReadableStream), res);
+}
+
+const server = createServer(async (req, res) => {
 	// Reserved for the platform: answered by the shim for any method, never passed to the function
 	const path = req.url?.split("?")[0];
 	if (path === HEALTH_PATH) {
@@ -68,7 +98,8 @@ const server = createServer((req, res) => {
 		return;
 	}
 
-	// TODO: call handler with nodeReqToWebRequest(req), send the Response back
+	const response = await handler(nodeReqToWebRequest(req));
+	await sendWebResponse(response, res);
 });
 
 server.listen(port, () => {
