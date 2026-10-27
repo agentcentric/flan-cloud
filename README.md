@@ -31,9 +31,9 @@ flan invoke hello --data '{"name":"Ryan"}'
 
 Flan is split into two halves:
 
-- **Control plane**: a server that handles *changes* (deploying functions,
+- **Control plane**: a server that handles _changes_ (deploying functions,
   creating databases, setting secrets, adding routes). The CLI talks to it.
-- **Data plane**: the parts that serve *real traffic* (the gateway, function
+- **Data plane**: the parts that serve _real traffic_ (the gateway, function
   containers, Postgres, the queue).
 
 ```
