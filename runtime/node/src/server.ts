@@ -89,6 +89,15 @@ async function sendWebResponse(
 	await pipeline(Readable.fromWeb(response.body as NodeReadableStream), res);
 }
 
+// A client closing the connection early is normal, not a function bug
+function isClientDisconnect(err: unknown): boolean {
+	return (
+		err instanceof Error &&
+		"code" in err &&
+		err.code === "ERR_STREAM_PREMATURE_CLOSE"
+	);
+}
+
 const server = createServer(async (req, res) => {
 	// Reserved for the platform: answered by the shim for any method, never passed to the function
 	const path = req.url?.split("?")[0];
@@ -98,8 +107,31 @@ const server = createServer(async (req, res) => {
 		return;
 	}
 
-	const response = await handler(nodeReqToWebRequest(req));
-	await sendWebResponse(response, res);
+	try {
+		const response = await handler(nodeReqToWebRequest(req));
+		if (!(response instanceof Response)) {
+			throw new TypeError(
+				`${functionPath} must return a Response, got ${typeof response}`,
+			);
+		}
+		await sendWebResponse(response, res);
+	} catch (err: unknown) {
+		// Nothing has gone out yet, so the client can still get a clean 500.
+		// pipeline destroys res when it fails, so check that too
+		if (!res.headersSent && !res.destroyed) {
+			console.error("Function failed:", err);
+			res.statusCode = 500;
+			res.setHeader("content-type", "text/plain");
+			res.end("Internal Server Error");
+			return;
+		}
+
+		// Too late to change the status. Cutting the connection tells the client the body is incomplete
+		if (!isClientDisconnect(err)) {
+			console.error("Response failed mid-stream:", err);
+		}
+		res.destroy();
+	}
 });
 
 server.listen(port, () => {
