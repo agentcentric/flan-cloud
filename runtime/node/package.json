@@ -1,16 +1,16 @@
 {
-  "name": "flan-runtime-node",
-  "private": true,
-  "type": "module",
-  "engines": {
-    "node": ">=24"
-  },
-  "scripts": {
-    "start": "node src/server.ts",
-    "typecheck": "tsc --noEmit"
-  },
-  "devDependencies": {
-    "@types/node": "^24.0.0",
-    "typescript": "^5.9.0"
-  }
+	"name": "flan-runtime-node",
+	"private": true,
+	"type": "module",
+	"engines": {
+		"node": ">=24"
+	},
+	"scripts": {
+		"start": "node src/server.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"typescript": "^5.9.0"
+	}
 }
