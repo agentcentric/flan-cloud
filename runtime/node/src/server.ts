@@ -11,6 +11,7 @@ type Handler = (request: Request) => Response | Promise<Response>;
 
 const DEFAULT_FUNCTION_PATH = "/app/function/index.ts";
 const DEFAULT_PORT = 8080;
+const DEFAULT_SHUTDOWN_TIMEOUT_MS = 8000;
 const HEALTH_PATH = "/_flan/health";
 
 // Read config once at startup so bad values fail immediately
@@ -19,6 +20,18 @@ const port = Number(env.PORT ?? DEFAULT_PORT);
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
 	console.error(`Invalid PORT: ${env.PORT}`);
+	process.exit(1);
+}
+
+// Must stay below the container's stop grace period (Docker's default is 10s)
+const shutdownTimeoutMs = Number(
+	env.FLAN_SHUTDOWN_TIMEOUT_MS ?? DEFAULT_SHUTDOWN_TIMEOUT_MS,
+);
+
+if (!Number.isInteger(shutdownTimeoutMs) || shutdownTimeoutMs < 1) {
+	console.error(
+		`Invalid FLAN_SHUTDOWN_TIMEOUT_MS: ${env.FLAN_SHUTDOWN_TIMEOUT_MS}`,
+	);
 	process.exit(1);
 }
 
@@ -137,3 +150,35 @@ const server = createServer(async (req, res) => {
 server.listen(port, () => {
 	console.log(`Listening on port ${port} (function: ${functionPath})`);
 });
+
+let shuttingDown = false;
+
+// Stop taking new connections, let in-flight requests finish, then exit.
+// If they don't finish before the deadline, cut them off so we exit before Docker's SIGKILL
+function shutdown(signal: NodeJS.Signals): void {
+	if (shuttingDown) {
+		return;
+	}
+	shuttingDown = true;
+	console.log(`Received ${signal}, shutting down`);
+
+	const deadline = setTimeout(() => {
+		server.getConnections((_err, count) => {
+			console.error(
+				`Shutdown deadline (${shutdownTimeoutMs}ms) passed with ${count} connection(s) open, forcing exit`,
+			);
+			server.closeAllConnections();
+			process.exit(1);
+		});
+	}, shutdownTimeoutMs);
+
+	// The callback runs once every connection has closed
+	server.close(() => {
+		clearTimeout(deadline);
+		console.log("All requests finished, exiting");
+		process.exit(0);
+	});
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
