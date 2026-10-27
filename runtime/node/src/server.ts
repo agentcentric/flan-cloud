@@ -63,6 +63,9 @@ const server = createServer((req, res) => {
         return;
     }
 
+    try {
+        await handler(nodeReqToWebRequest(req));
+    }
     // TODO: call handler with nodeReqToWebRequest(req), send the Response back
 });
 
