@@ -1,0 +1,18 @@
+# Dependencies: install inside the image instead
+node_modules
+npm-debug.log*
+
+# Build output: the image should build its own
+dist
+
+# Secrets and local config
+.env
+.env.*
+
+# Docker's own files
+Dockerfile
+.dockerignore
+
+# Editor / test leftovers
+.vscode
+coverage
