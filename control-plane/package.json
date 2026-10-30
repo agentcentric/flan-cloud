@@ -1,0 +1,20 @@
+{
+	"name": "flan-control-plane",
+	"private": true,
+	"type": "module",
+	"engines": {
+		"node": ">=24"
+	},
+	"scripts": {
+		"start": "node src/server.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.6",
+		"typescript": "^7.0.2"
+	},
+	"dependencies": {
+		"@hono/node-server": "^2.1.5",
+		"dockerode": "^5.0.1"
+	}
+}
