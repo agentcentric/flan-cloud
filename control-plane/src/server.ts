@@ -3,7 +3,13 @@ import { join, resolve } from "node:path";
 import { env } from "node:process";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { removeFunctionContainer, startFunctionContainer } from "./docker.ts";
+import {
+	type FunctionContainer,
+	failOnExit,
+	removeFunctionContainer,
+	startFunctionContainer,
+	tailLogs,
+} from "./docker.ts";
 import { waitForHealthy } from "./health.ts";
 
 const DEFAULT_PORT = 3000;
@@ -28,8 +34,11 @@ app.all("/_flan/health", (c) => c.text("ok"));
 app.put("/functions/:name", async (c) => {
 	const name = c.req.param("name");
 	if (!FUNCTION_NAME.test(name)) {
-		return c.text(
-			"Invalid function name: use lowercase letters, numbers and dashes",
+		return c.json(
+			{
+				error:
+					"Invalid function name: use lowercase letters, numbers and dashes",
+			},
 			400,
 		);
 	}
@@ -42,26 +51,38 @@ app.put("/functions/:name", async (c) => {
 		await writeFile(join(functionDir, "index.ts"), functionCode);
 	} catch (err) {
 		console.error(`Failed to save function ${name}:`, err);
-		return c.text("Failed to save function", 500);
+		return c.json({ error: "Failed to save function" }, 500);
 	}
 
-	let hostPort: number;
+	let started: FunctionContainer;
 	try {
 		await removeFunctionContainer(name);
-		hostPort = await startFunctionContainer(name, functionDir);
+		started = await startFunctionContainer(name, functionDir);
 	} catch (err) {
 		console.error(`Failed to start container for ${name}:`, err);
-		return c.text("Failed to start function container", 500);
+		return c.json({ error: "Failed to start function container" }, 500);
 	}
 
+	// Healthy wins = deployed. Container exits first = crashed, fail fast.
+	// race() doesn't cancel the loser, so abort it once either one settles.
+	const settled = new AbortController();
 	try {
-		await waitForHealthy(hostPort);
+		await Promise.race([
+			waitForHealthy(started.port, settled.signal),
+			failOnExit(started.container, settled.signal),
+		]);
 	} catch (err) {
 		console.error(`Function ${name} failed health check:`, err);
-		return c.text("Function failed to start (check its logs)", 500);
+		const logs = await tailLogs(started.container).catch((logErr) => {
+			console.error(`Couldn't read logs for ${name}:`, logErr);
+			return "(logs unavailable)";
+		});
+		return c.json({ error: "Function failed to start", logs }, 500);
+	} finally {
+		settled.abort();
 	}
 
-	return c.text("deployed");
+	return c.json({ name, url: `http://127.0.0.1:${started.port}` });
 });
 
 const server = serve({ fetch: app.fetch, port }, () => {
