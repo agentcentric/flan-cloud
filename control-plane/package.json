@@ -10,6 +10,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
+		"@types/dockerode": "^4.0.2",
 		"@types/node": "^26.6.6",
 		"typescript": "^7.0.2"
 	},
