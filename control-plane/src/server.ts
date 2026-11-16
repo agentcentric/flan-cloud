@@ -3,6 +3,8 @@ import { join, resolve } from "node:path";
 import { env } from "node:process";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { removeFunctionContainer, startFunctionContainer } from "./docker.ts";
+import { waitForHealthy } from "./health.ts";
 
 const DEFAULT_PORT = 3000;
 
@@ -41,6 +43,22 @@ app.put("/functions/:name", async (c) => {
 	} catch (err) {
 		console.error(`Failed to save function ${name}:`, err);
 		return c.text("Failed to save function", 500);
+	}
+
+	let hostPort: number;
+	try {
+		await removeFunctionContainer(name);
+		hostPort = await startFunctionContainer(name, functionDir);
+	} catch (err) {
+		console.error(`Failed to start container for ${name}:`, err);
+		return c.text("Failed to start function container", 500);
+	}
+
+	try {
+		await waitForHealthy(hostPort);
+	} catch (err) {
+		console.error(`Function ${name} failed health check:`, err);
+		return c.text("Function failed to start (check its logs)", 500);
 	}
 
 	return c.text("deployed");
