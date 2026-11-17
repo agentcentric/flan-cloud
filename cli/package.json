@@ -1,0 +1,19 @@
+{
+	"name": "flan-cli",
+	"private": true,
+	"type": "module",
+	"engines": {
+		"node": ">=24"
+	},
+	"bin": {
+		"flan": "src/cli.ts"
+	},
+	"scripts": {
+		"start": "node src/cli.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.6",
+		"typescript": "^7.0.2"
+	}
+}
