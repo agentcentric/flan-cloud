@@ -23,7 +23,7 @@ backend on a real cloud provider:
 You drive it all through the `flan` CLI:
 
 ```sh
-flan deploy ./hello
+flan deploy hello ./hello.ts
 flan invoke hello --data '{"name":"Ryan"}'
 ```
 
@@ -64,7 +64,6 @@ Kubernetes (k3s), and a full OAuth2/OIDC provider.
 - **TypeScript / Node.js**: control plane, CLI, function runtime
 - **Go**: API gateway
 - **Docker**: runs everything, Docker Compose to start
-- **pnpm workspaces**: monorepo tooling
 
 ## Status
 
